@@ -10,16 +10,46 @@
         var width = window.innerWidth,
             height = window.innerHeight;
 
+        var filterFloat = function (value) {
+            if(/^(\-|\+)?([0-9]+(\.[0-9]+)?|Infinity)$/
+                    .test(value))
+            var result = Number(value);
+            if (result >= 0 && result <= 1) {
+                return Number(value);
+            }
+
+            return NaN;
+        };
+
+        var dataset = [];
+
+        var getColor = function(d) {
+            // we need to redefine the fills as well since we have new data,
+            //  otherwise the colors would no longer be relative to the data
+            //  values (and arc length). if your fills weren't relative to
+            //  the data, this would not be necessary
+            var grn = Math.floor((1 - d / 60) * 255);
+
+            if (dataset.length > 0 && d == dataset[1]) {
+                if (dataset[1] + 30 <= dataset[0]) {
+                    return RED;
+                } else if (dataset[1] + 15 <= dataset[0]) {
+                    return ORANGE;
+                }
+            }
+            return "rgb(0, " + grn + ", 0)";
+        };
+
         angular.module('app', []).controller('ctrl', function ($scope) {
-            $scope.expected = 0.75;
-            $scope.actual = 0.25;
+            $scope.expected = 0;
+            $scope.actual = 0;
         }).
             directive('indicator', function () {
                 return {
                     restrict: 'E',
                     require: 'ngModel',
-                    template: 'Actual: <input type="number" ng-model="actual" ng-init="actual=0.25"/>' +
-                    'Expected: <input type="number" ng-model="expected" ng-init="expected=0.75"/>' +
+                    template: 'Actual: <input type="number" id="actual-input" ng-model="actual" ng-init="actual=0"/>' +
+                    'Expected: <input type="number" id="expected-input" ng-model="expected" ng-init="expected=0"/>' +
                     '<div class="chart"></div>',
                     link: function (scope, element, attrs, ngModel) {
 
@@ -30,7 +60,7 @@
 
                         var render = function () {
                             vis = d3.select("svg");   // select the svg
-                            var dataset = [scope.expected * 60, scope.actual * 60]; //scale is in minutes
+                            dataset = [scope.expected * 60, scope.actual * 60]; //scale is in minutes
 
                             // arc accessor
                             //  d and i are automatically passed to accessor functions,
@@ -56,19 +86,7 @@
                             arcs.transition()         // adding a transition
                                 .duration(300)
                                 .attr("fill", function (d) {
-                                    // we need to redefine the fills as well since we have new data,
-                                    //  otherwise the colors would no longer be relative to the data
-                                    //  values (and arc length). if your fills weren't relative to
-                                    //  the data, this would not be necessary
-                                    var grn = Math.floor((1 - d / 60) * 255);
-                                    if (d == dataset[0]) {
-                                        if (dataset[1] + 30 <= d) {
-                                            return RED;
-                                        } else if (dataset[1] + 15 <= d) {
-                                            return ORANGE;
-                                        }
-                                    }
-                                    return "rgb(0, " + grn + ", 0)";
+                                    return getColor(d);
                                 })
                                 .attr("d", drawArc);    // this will only work when the difference between the old
                                                         //  and new values between two isn't too great. otherwise
@@ -80,15 +98,7 @@
                                 .attr("class", "arc-path")                  // assigns a class for easier selecting
                                 .attr("transform", greenTranslate)
                                 .attr("fill", function (d) {
-                                    var grn = Math.floor((1 - d / 60) * 255);
-                                    if (d == dataset[1]) {
-                                        if (dataset[0] + 30 <= d) {
-                                            return RED;
-                                        } else if (dataset[0] + 15 <= d) {
-                                            return ORANGE;
-                                        }
-                                    }
-                                    return "rgb(0, " + grn + ", 0)";
+                                    return getColor(d);
                                 })
                                 .attr("d", drawArc); // draw the arc
 
@@ -108,8 +118,26 @@
                             d3.select('text.progress-text').text(scope.actual * 100 + '%\n Progress');
                         }
 
-                        scope.$watchGroup(['actual', 'expected'], function (newValue, oldValue) {
-                            if (newValue !== oldValue) render();
+                        scope.$watch('actual', function (newValue, oldValue) {
+                            newValue = filterFloat(newValue);
+                            if (newValue !== oldValue) {
+                                if (!isNaN(newValue)) {
+                                    render();
+                                } else {
+                                    scope.actual = oldValue;
+                                }
+                            }
+                        });
+
+                        scope.$watch('expected', function (newValue, oldValue) {
+                            newValue = filterFloat(newValue);
+                            if (newValue !== oldValue) {
+                                if (!isNaN(newValue)) {
+                                    render();
+                                } else {
+                                    scope.expected = oldValue;
+                                }
+                            }
                         });
 
                         var initialize = function () {

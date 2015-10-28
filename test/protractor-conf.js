@@ -17,5 +17,7 @@ exports.config = {
 
   jasmineNodeOpts: {
     defaultTimeoutInterval: 30000
-  }
+  },
+
+  rootElement: '#my-app'
 };

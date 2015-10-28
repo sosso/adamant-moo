@@ -2,55 +2,109 @@
 
 /* http://docs.angularjs.org/guide/dev_guide.e2e-testing */
 
-describe('PhoneCat App', function() {
+describe('App', function () {
 
-  describe('Phone list view', function() {
+    describe('View', function () {
 
-    beforeEach(function() {
-      browser.get('app/index.html');
-    });
+        var actual, expected;
 
-
-    it('should filter the phone list as a user types into the search box', function() {
-
-      var phoneList = element.all(by.repeater('phone in phones'));
-      var query = element(by.model('query'));
-
-      expect(phoneList.count()).toBe(3);
-
-      query.sendKeys('nexus');
-      expect(phoneList.count()).toBe(1);
-
-      query.clear();
-      query.sendKeys('motorola');
-      expect(phoneList.count()).toBe(2);
-    });
-
-
-    it('should be possible to control phone order via the drop down select box', function() {
-
-      var phoneNameColumn = element.all(by.repeater('phone in phones').column('phone.name'));
-      var query = element(by.model('query'));
-
-      function getNames() {
-        return phoneNameColumn.map(function(elm) {
-          return elm.getText();
+        beforeEach(function () {
+            browser.get('app/');
+            actual = element(by.css('#actual-input'));
+            expected = element(by.css('#expected-input'));
         });
-      }
 
-      query.sendKeys('tablet'); //let's narrow the dataset to make the test assertions shorter
+        afterEach(function () {
+            actual.clear();
+            expected.clear();
+        });
 
-      expect(getNames()).toEqual([
-        "Motorola XOOM\u2122 with Wi-Fi",
-        "MOTOROLA XOOM\u2122"
-      ]);
+        it('Should not allow values outside of [0, 1.0]', function () {
+            var actual = element(by.css('#actual-input')); // issues when using by model
+            actual.click().clear().then(function () {
+                actual.sendKeys(.2);
+                actual.getAttribute('value').then(function (value) {
+                    expect(parseFloat(value)).toBe(0.2);
+                });
+            });
 
-      element(by.model('orderProp')).element(by.css('option[value="name"]')).click();
+            [-7, NaN, 'a'].forEach(function (value) {
+                //Clear to 0
+                actual.sendKeys(protractor.Key.BACK_SPACE);
+                actual.sendKeys(protractor.Key.BACK_SPACE);
 
-      expect(getNames()).toEqual([
-        "MOTOROLA XOOM\u2122",
-        "Motorola XOOM\u2122 with Wi-Fi"
-      ]);
+                actual.sendKeys(value);
+                actual.getAttribute('value').then(function (value) {
+                    expect(parseInt(value)).toBe(0);
+                });
+            });
+
+        });
+
+        it('Should have green rings when expected - actual <= .25', function () {
+            var arc = element.all(by.css('path')).get(1);
+
+            expected.click().clear().then(function () {
+                expected.sendKeys(0.25)
+            });
+
+            actual.click().clear().then(function () {
+                actual.sendKeys(0.25)
+                element(by.css('.progress-text')).getText().then(function (text) {
+                    expect(text).toBe('25% Progress');
+                });
+            });
+
+
+            browser.driver.sleep(1000);
+            arc.getAttribute('fill').then(function (rgb) {
+                expect(rgb.substring(1, 3)).toEqual('00');
+                expect(rgb.substring(3, 5)).toEqual('bf');
+                expect(rgb.substring(5, 7)).toEqual('00');
+            });
+        });
+
+        it('Should have orange outer ring when actual between 25 and 50% behind expected', function () {
+            var arc = element.all(by.css('path')).get(1);
+
+            expected.click().clear().then(function () {
+                expected.sendKeys(0.5);
+            });
+            actual.click().clear().then(function () {
+                actual.sendKeys(0.25);
+                element(by.css('.progress-text')).getText().then(function (text) {
+                    expect(text).toBe('25% Progress');
+                });
+            });
+
+            browser.driver.sleep(1000);
+            arc.getAttribute('fill').then(function (rgb) {
+                expect(rgb.substring(1, 3)).toEqual('ff');
+                expect(rgb.substring(3, 5)).toEqual('8c');
+                expect(rgb.substring(5, 7)).toEqual('00');
+            });
+        });
+
+        it('Should have orange red ring when actual more than 50% behind expected', function () {
+            var arc = element.all(by.css('path')).get(1);
+
+            expected.click().clear().then(function () {
+                expected.sendKeys(0.80);
+            });
+            actual.click().clear().then(function () {
+                actual.sendKeys(0.25);
+                element(by.css('.progress-text')).getText().then(function (text) {
+                    expect(text).toBe('25% Progress');
+                });
+            });
+
+            browser.driver.sleep(1000);
+            arc.getAttribute('fill').then(function (rgb) {
+                expect(rgb.substring(1, 3)).toEqual('ff');
+                expect(rgb.substring(3, 5)).toEqual('00');
+                expect(rgb.substring(5, 7)).toEqual('00');
+            });
+        });
+
     });
-  });
 });
