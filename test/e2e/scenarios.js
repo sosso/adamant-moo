@@ -6,12 +6,13 @@ describe('App', function () {
 
     describe('View', function () {
 
-        var actual, expected;
+        var actual, expected, arc;
 
         beforeEach(function () {
             browser.get('app/');
             actual = element(by.css('#actual-input'));
             expected = element(by.css('#expected-input'));
+            arc = element.all(by.css('path')).get(1);
         });
 
         afterEach(function () {
@@ -42,8 +43,6 @@ describe('App', function () {
         });
 
         it('Should have green rings when expected - actual <= .25', function () {
-            var arc = element.all(by.css('path')).get(1);
-
             expected.click().clear().then(function () {
                 expected.sendKeys(0.25)
             });
@@ -58,15 +57,11 @@ describe('App', function () {
 
             browser.driver.sleep(1000);
             arc.getAttribute('fill').then(function (rgb) {
-                expect(rgb.substring(1, 3)).toEqual('00');
-                expect(rgb.substring(3, 5)).toEqual('bf');
-                expect(rgb.substring(5, 7)).toEqual('00');
+                expect(rgb).toEqual('#00bf00');
             });
         });
 
         it('Should have orange outer ring when actual between 25 and 50% behind expected', function () {
-            var arc = element.all(by.css('path')).get(1);
-
             expected.click().clear().then(function () {
                 expected.sendKeys(0.5);
             });
@@ -79,15 +74,11 @@ describe('App', function () {
 
             browser.driver.sleep(1000);
             arc.getAttribute('fill').then(function (rgb) {
-                expect(rgb.substring(1, 3)).toEqual('ff');
-                expect(rgb.substring(3, 5)).toEqual('8c');
-                expect(rgb.substring(5, 7)).toEqual('00');
+                expect(rgb).toEqual('#ff8c00');
             });
         });
 
         it('Should have orange red ring when actual more than 50% behind expected', function () {
-            var arc = element.all(by.css('path')).get(1);
-
             expected.click().clear().then(function () {
                 expected.sendKeys(0.80);
             });
@@ -100,9 +91,7 @@ describe('App', function () {
 
             browser.driver.sleep(1000);
             arc.getAttribute('fill').then(function (rgb) {
-                expect(rgb.substring(1, 3)).toEqual('ff');
-                expect(rgb.substring(3, 5)).toEqual('00');
-                expect(rgb.substring(5, 7)).toEqual('00');
+                expect(rgb).toEqual('#ff0000');
             });
         });
 
